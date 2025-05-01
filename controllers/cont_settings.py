@@ -137,31 +137,49 @@ def get_partitions_info_rows():
     partitions = psutil.disk_partitions()
     parts_data = []
     for partition in partitions:
-        partition_data = [dcc.Markdown(f"**Устройство**: {partition.device}"),
-                          dcc.Markdown(f"**Точка монтирования**: {partition.mountpoint}"),
-                          dcc.Markdown(f"**Файловая система**: {partition.fstype}")]
+        partition_data = [
+            dcc.Markdown(
+                f"**Устройство**: {partition.device}", className="partition-no-margin"
+            ),
+            dcc.Markdown(
+                f"**Точка монтирования**: {partition.mountpoint}",
+                className="partition-no-margin",
+            ),
+            dcc.Markdown(
+                f"**Файловая система**: {partition.fstype}",
+                className="partition-no-margin",
+            ),
+        ]
         try:
             partition_usage = psutil.disk_usage(partition.mountpoint)
             partition_data.append(
                 dcc.Markdown(
-                    f"**Всего доступно**: {get_readable_bytes(partition_usage.total)}"
+                    f"**Всего доступно**: {get_readable_bytes(partition_usage.total)}",
+                    className="partition-no-margin",
                 )
             )
             partition_data.append(
                 dcc.Markdown(
-                    f"**Использовано**: {get_readable_bytes(partition_usage.used)}"
+                    f"**Использовано**: {get_readable_bytes(partition_usage.used)}",
+                    className="partition-no-margin",
                 )
             )
             partition_data.append(
-                dcc.Markdown(f"**Свободно**: {get_readable_bytes(partition_usage.free)}")
+                dcc.Markdown(
+                    f"**Свободно**: {get_readable_bytes(partition_usage.free)}",
+                    className="partition-no-margin",
+                )
             )
             partition_data.append(
-                dcc.Markdown(f"**Процент использования**: {partition_usage.percent}%")
+                dcc.Markdown(
+                    f"**Процент использования**: {partition_usage.percent}%",
+                    className="partition-no-margin",
+                )
             )
         except PermissionError:
             continue
         parts_data.append(
-            generate_table_row(partition.device, dmc.Stack(partition_data, gap="xs"))
+            generate_table_row(partition.device, dmc.Stack(partition_data, gap=0))
         )
 
     return [generate_table_row(dmc.Title("Накопители и разделы", order=5))] + parts_data

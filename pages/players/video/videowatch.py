@@ -1,6 +1,6 @@
 import dash_mantine_components as dmc
 import dash_player as dp
-from dash import (Input, Output, callback, html, register_page)
+from dash import Input, Output, callback, html, register_page
 from dash_extensions import Purify
 from flask import request
 
@@ -93,9 +93,7 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                     },
                 ),
                 dmc.Space(),
-                dmc.Title(
-                    video_name, id="player_videoname", order=3, w='100%'
-                ),
+                dmc.Title(video_name, id="player_videoname", order=3, w="100%"),
                 dmc.Grid(
                     children=[
                         dmc.GridCol(
@@ -117,7 +115,9 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                             span="content",
                             w="max-content",
                         ),
-                        dmc.GridCol(span="auto", display={'base': 'none', 'md': 'block'}),
+                        dmc.GridCol(
+                            span="auto", display={"base": "none", "md": "block"}
+                        ),
                         dmc.GridCol(
                             dmc.Group(
                                 children=[
@@ -129,7 +129,7 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                                         children=[
                                             dmc.Button(
                                                 Purify(
-                                                    '<i class="bi bi-download"></i>'
+                                                    html='<i class="bi bi-download"></i>'
                                                 ),
                                                 id="player_download",
                                                 variant="outline",
@@ -144,7 +144,7 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                                         children=[
                                             dmc.Button(
                                                 Purify(
-                                                    '<i class="bi bi-collection-play"></i>'
+                                                    html='<i class="bi bi-collection-play"></i>'
                                                 ),
                                                 id="player_addtoplaylist",
                                                 disabled=True,
@@ -159,7 +159,9 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                                         withArrow=True,
                                         children=[
                                             dmc.Button(
-                                                Purify('<i class="bi bi-flag"></i>'),
+                                                Purify(
+                                                    html='<i class="bi bi-flag"></i>'
+                                                ),
                                                 id="player_report",
                                                 disabled=True,
                                                 variant="outline",
@@ -178,7 +180,7 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                 ),
             ],
             justify=elements_justify,
-            mih='100%'
+            mih="100%",
         )
 
     service.log_printer(request.remote_addr, "videoplayer", f'v_id "{v}"')
@@ -195,7 +197,7 @@ def layout(l="n", v=None, **other_unknown_query_strings):  # noqa: E741
                             children=videoplayer_children,
                             className="columns-margin adaptive-width",
                             span="auto",
-                            p=0
+                            p=0,
                         ),
                         dmc.GridCol(
                             children=[

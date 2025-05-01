@@ -17,3 +17,7 @@
     text-overflow: ellipsis;
     /* Добавляем многоточие */
 }
+
+.partition-no-margin > p {
+    margin: 2.5px !important;
+}

@@ -235,7 +235,7 @@ def tree_content(source):
         [
             label,
             Purify(
-                nested_list_to_html(
+                html=nested_list_to_html(
                     [
                         "C:/",
                         [

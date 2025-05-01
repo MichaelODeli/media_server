@@ -10,9 +10,6 @@ from dotenv import dotenv_values
 from callbacks import call_app
 from variables import styles
 
-# noinspection PyProtectedMember
-dash._dash_renderer._set_react_version("18.2.0")
-
 
 config = {
     **dotenv_values(".env"),  # load variables
@@ -21,16 +18,26 @@ config = {
 }
 
 # flask and dash configuration
-server = flask.Flask(config["APP_NAME"])
+server = flask.Flask(__name__)
 app = dash.Dash(
-    config["APP_NAME"],
+    # name=config["APP_NAME"],
+    __name__,
     server=server,
     use_pages=True,
     external_stylesheets=styles.STYLESHEETS,
     title=config["WEB_PAGE_TITLE"],
     update_title=config["WEB_PAGE_LOADING_TITLE"],
     suppress_callback_exceptions=True,
+    pages_folder=os.path.abspath("pages")
 )
+# app = dash.Dash(
+#     __name__,
+#     server=server,
+#     use_pages=True,
+#     external_stylesheets=styles.STYLESHEETS,
+#     suppress_callback_exceptions=True,
+#     pages_folder=os.path.abspath("pages")
+# )
 
 
 # Конструкция всего макета
