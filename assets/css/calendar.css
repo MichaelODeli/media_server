@@ -1,0 +1,11 @@
+.current-day {
+    border-radius: var(--mantine-radius-xl);
+    background-color: var(--mantine-primary-color-filled);
+
+}
+
+.any-day, .current-day {
+    --day-size-md: calc(1.75rem* var(--mantine-scale));
+    height: var(--day-size-md);
+    width: var(--day-size-md);
+}

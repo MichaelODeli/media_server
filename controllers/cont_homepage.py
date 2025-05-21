@@ -1,98 +1,88 @@
-import requests
-from dash import (
-    dcc,
-    html,
-)
-import dash_mantine_components as dmc
-from controllers.cont_torrents import bytes2human
-import dash_bootstrap_components as dbc
-from datetime import datetime, timedelta
 import calendar
+import locale
 import shutil
+from datetime import datetime, timedelta
+
+import dash_mantine_components as dmc
 import psutil
+from dash import html
 from dash_iconify import DashIconify
 
-import locale
+from controllers import cont_torrents, db_connection, file_manager
+from controllers.cont_torrents import bytes2human
+from controllers.cont_settings import get_readable_bytes
+
 locale.setlocale(locale.LC_ALL, "ru_RU")
 
 
-def get_torrent_status(BASE_URL):
+def get_torrent_status():
     """
-    Получает статус торрентов из qBittorrent API.
-
-    Параметры:
-    BASE_URL (str): Базовый URL для доступа к qBittorrent API.
-
-    Вывод:
-    tuple: Кортеж с тремя строками, представляющими информацию о статусе торрентов.
-           Первая строка - количество активных торрентов.
-           Вторая строка - количество торрентов, скачиваемых в данный момент.
-           Третья строка - количество торрентов, которые раздаются.
-
-    Примечание:
-    Если возникает ошибка при получении данных от qBittorrent API,
-    возвращается кортеж с тремя строками, содержащими сообщение "qbittorrent не отвечает.".
+    :return List(str):
     """
     try:
-        response = requests.get(f"{BASE_URL}/api/v2/auth/login", timeout=10)
-        # print(response.json())
-        if response.status_code == 200:
-            count_all = len(
-                requests.get(f"{BASE_URL}/api/v2/torrents/info").json()
-            )  # всего
-            count_downloading = len(
-                requests.get(f"{BASE_URL}/api/v2/torrents/info?filter=downloading").json()
-            )  # скачивается
-            count_down_av = len(
-                requests.get(
-                    f"{BASE_URL}/api/v2/torrents/info?filter=stalled_downloading"
-                ).json()
-            )  # доступны к раздаче
-            count_active = len(
-                requests.get(f"{BASE_URL}/api/v2/torrents/info?filter=active").json()
-            )  # активны
-            count_completed = len(
-                requests.get(f"{BASE_URL}/api/v2/torrents/info?filter=completed").json()
-            )  # активны
+        torrents_dict = cont_torrents.get_torrents_data_dict(source_page="main_page")
 
-            count_upl = count_active - count_downloading  # раздаются
-            return (
-                f"Активных: {count_all}",
-                f"Скачивается: {count_downloading}",
-                f"Раздается: {count_upl}",
-            )
-        else:
-            raise ConnectionError
-    except:
-        return ['qbittorrent не отвечает.']*3
+        count_all = torrents_dict["all"]
+        count_downloading = torrents_dict["downloading"]
+        count_uploading = torrents_dict["uploading"]
+
+        return (
+            f"Активных: {count_all}",
+            f"Скачивается: {count_downloading}",
+            f"Раздается: {count_uploading}",
+        )
+    except Exception:
+        return ["qbittorrent не отвечает."] * 3
+
+
+def get_color_by_value(current_value=None, max_value=None, percent=None):
+    """
+
+    :param current_value:
+    :param max_value:
+    :param percent: additional param
+    :return (str): color name
+    """
+    if percent is None:
+        percent = (current_value / max_value) * 100
+    return (
+        "custom-primary-color"
+        if percent < 70
+        else ("orange" if percent < 90 else "red")
+    )
 
 
 def get_progress(
-    drive: str, current_value: float, max_value: float, id: str, valid: bool
+    drive: str,
+    current_value: float,
+    max_value: float,
+    component_id: str,
+    valid: bool,
 ):
     """
     Получить прогресс-бар с текущим объемом накопителя
 
-    Параметры:
-    - drive: название диска/раздела
-    - current_value: текущий занятый объем диска
-    - max_value: максимальная емкость раздела
-    - id: идентификатор блока
-    - valid: "существование" раздела. Если нет - то прогресс-бар будет окрашен в красный цвет.
-
+    :param drive: название диска/раздела
+    :param current_value: текущий занятый объем диска
+    :param max_value: максимальная емкость раздела
+    :param id: идентификатор блока
+    :param valid: наличие раздела. Если нет - то прогресс-бар будет окрашен в красный цвет.
     """
-    percent = int(round(current_value / max_value, 2) * 100)
-    if valid == True:
+
+    if valid:
         return html.Tr(
             [
-                html.Td(drive),
+                html.Td(drive, style={"text-wrap": "nowrap"}),
                 html.Td(
                     dmc.ProgressRoot(
                         [
                             dmc.ProgressSection(
-                                dmc.ProgressLabel(drive),
-                                value=percent,
-                                color="cyan",
+                                dmc.ProgressLabel(
+                                    f"{get_readable_bytes(current_value)} | {get_readable_bytes(max_value)}"
+                                ),
+                                value=int(round(current_value / max_value, 2) * 100),
+                                color=get_color_by_value(current_value, max_value),
+                                id=component_id,
                             )
                         ],
                         size="xl",
@@ -112,7 +102,7 @@ def get_progress(
                                 dmc.ProgressLabel("Диск не обнаружен"),
                                 value=100,
                                 color="#cc0000",
-                                id=id
+                                id=component_id,
                             )
                         ],
                         size="xl",
@@ -127,22 +117,20 @@ def get_drive_size(partition):
     """
     Получить размер диска/раздела в виде кольцевого прогресс-бара.
 
-    Параметры:
-    - partition: путь к разделу
+    :param partition: путь к разделу
     """
     try:
-        total, used, _ = shutil.disk_usage(partition)
-
-        total = total // (2**30)
-        used = used // (2**30)
+        mountpoint = partition.mountpoint
+        total, used, _ = shutil.disk_usage(mountpoint)
         valid = True
-    except FileNotFoundError:
+    except Exception:
         total = 1
         used = 1
         valid = False
+        mountpoint = None
 
     return get_progress(
-        partition, int(used), int(total), f"ring-{partition}", valid=valid
+        mountpoint, int(used), int(total), f"ring-{mountpoint}", valid=valid
     )
 
 
@@ -150,32 +138,20 @@ def widget_disk_size(**kwargs):
     """
     Функция создает карточку с информацией о свободном месте на дисках.
 
-    Аргументы:
-    **kwargs: любое количество ключевых аргументов.
+    :param **kwargs: любое количество ключевых аргументов.
 
-    Возвращает:
-    dbc.Card: карточка с информацией о свободном месте на дисках.
+    :return (dmc.Card): карточка с информацией о свободном месте на дисках.
     """
-    return dbc.Card(
+    return dmc.Card(
         [
-            html.H5(
-                "Свободное место на дисках",
-                style={"text-align": "center"},
-                className="card-title",
-            ),
+            dmc.Text("Свободное место на разделах", size="xl", ta="center"),
             dmc.Space(h=10),
-            html.Table(
-                [
-                    get_drive_size("/mnt/sdb1/"),
-                    get_drive_size("/mnt/sdc1/"),
-                    get_drive_size("/mnt/sdd1/"),
-                ]
-            ),
+            html.Table([get_drive_size(part) for part in psutil.disk_partitions()]),
             dmc.Space(h=10),
-            html.A("Подробные свойства", href='/settings?l=y&tab=server_info'),
-
+            dmc.Anchor("Подробные свойства", href="/settings?l=y&tab=server_info"),
         ],
-        className="block-background mobile-block",
+        className="mobile-block",
+        shadow="md",
         # style={"min-height": "100%"},
     )
 
@@ -184,13 +160,11 @@ def get_weather_label(selected_date: str, temperature: list, weather_type="sunny
     """
     Функция создает метку с информацией о погоде.
 
-    Аргументы:
-    selected_date (str): дата в формате DDMMYYYY.
-    temperature (list): список с температурой в формате [day_temp, night_temp].
-    weather_type (str): тип погоды, по умолчанию "sunny".
+    :param (str) selected_date: дата в формате DDMMYYYY.
+    :param (list) temperature: список с температурой в формате [day_temp, night_temp].
+    :param (str) weather_type: тип погоды, по умолчанию "sunny".
 
-    Возвращает:
-    dmc.Stack: метка с информацией о погоде.
+    :return (dmc.Stack): метка с информацией о погоде.
     """
     weather_types = {
         "sunny": "material-symbols:sunny",
@@ -208,27 +182,28 @@ def get_weather_label(selected_date: str, temperature: list, weather_type="sunny
         [
             dmc.Text(
                 calendar.day_abbr[converted_date.weekday()].capitalize(),
-                c="var(--bs-blue)" if converted_date.weekday() < 5 else "red",
+                c="custom-primary-color" if converted_date.weekday() < 5 else "red",
             ),
             dmc.Text(
                 f"{converted_date.day} {calendar.month_abbr[converted_date.month]}",
-                c="var(--bs-gray)",
+                c="gray",
             ),
             dmc.Space(h=10),
             DashIconify(icon=weather_types[weather_type], width=40),
-            dmc.Text(temperature[0], c="var(--bs-blue)"),
-            dmc.Text(temperature[1], c="var(--bs-gray)"),
+            dmc.Text(temperature[0], c="custom-primary-color"),
+            dmc.Text(temperature[1], c="gray"),
         ],
         align="center",
         gap=0,
     )
 
 
-def get_date_str(plus=0, pattern="%d%m%Y"):
+def get_date_string(plus: int = 0, pattern="%d%m%Y"):
     """
     Вывод сегодняшней даты с опцией добавление определенного числа дней к числу.
 
-    Паттерн по умолчанию - DDMMYYYY
+    :param (int) plus: кол-во добалвяемых дней к текущей дате
+    :param pattern: паттерн оформления даты. По умолчанию - DDMMYYYY
 
     """
     today = datetime.today()
@@ -240,51 +215,50 @@ def widget_weather(**kwargs):
     """
     Функция создает карточку с информацией о погоде.
 
-    Аргументы:
-    **kwargs: любое количество ключевых аргументов.
+    :param **kwargs: любое количество ключевых аргументов.
 
-    Возвращает:
-    dbc.Card: карточка с информацией о погоде.
+    :return dmc.Card: карточка с информацией о погоде.
     """
-    return dbc.Card(
+    return dmc.Card(
         [
-            html.H5(
-                "Погода в г. Среднеуральск",
-                style={"text-align": "center"},
-                className="card-title",
-            ),
+            dmc.Text("Погода в г. Екатеринбург", size="xl", ta="center"),
             dmc.Space(h=5),
             dmc.Group(
                 [
-                    get_weather_label(get_date_str(0), ["+1", "-4"], "cloudy"),
-                    get_weather_label(get_date_str(1), ["+10", "-4"], "sunny"),
-                    get_weather_label(get_date_str(2), ["+1", "-4"], "partly-cloudy"),
-                    get_weather_label(get_date_str(3), ["+10", "-4"], "thunderstorm"),
-                    get_weather_label(get_date_str(4), ["+1", "-40"], "rain"),
+                    get_weather_label(get_date_string(0), ["+1", "-4"], "cloudy"),
+                    get_weather_label(get_date_string(1), ["+10", "-4"], "sunny"),
+                    get_weather_label(
+                        get_date_string(2), ["+1", "-4"], "partly-cloudy"
+                    ),
+                    get_weather_label(
+                        get_date_string(3), ["+10", "-4"], "thunderstorm"
+                    ),
+                    get_weather_label(get_date_string(4), ["+1", "-40"], "rain"),
                 ],
                 justify="center",
                 gap="xs",
-                # style={'display': 'inline-flex', 'flex-direction': 'column'}
             ),
         ],
-        className="block-background mobile-block",
-        # style={"min-height": "100%"},
+        className="mobile-block",
+        shadow="md",
     )
 
 
-def widget_torrents(qbittorrent_url):
+def widget_torrents():
     """
     Функция создает карточку с информацией о торрентах.
 
-    Аргументы:
-    qbittorrent_url (str): URL-адрес qbittorrent.
-
-    Возвращает:
-    dbc.Card: карточка с информацией о торрентах.
+    :return dmc.Card:
     """
-    return dbc.Card(
+    conn = db_connection.get_conn()
+    settings = file_manager.get_settings(conn)
+
+    qbt_ip = settings["apps.torrents.qbittorrent_ip"]
+    qbt_port = settings["apps.torrents.qbittorrent_port"]
+
+    return dmc.Card(
         [
-            html.H5("Мониторинг торрентов", className="card-title"),
+            dmc.Text("Мониторинг торрентов", size="xl", ta="center"),
             dmc.Space(h=10),
             dmc.Stack(
                 [
@@ -296,9 +270,20 @@ def widget_torrents(qbittorrent_url):
                 gap="xs",
             ),
             dmc.Space(h=15),
-            html.A("Открыть qbittorrent", href=qbittorrent_url),
+            dmc.Anchor(
+                "Открыть qbittorrent",
+                href="http://" + qbt_ip + ":" + qbt_port,
+                target="_blank",
+            ),
+            dmc.LoadingOverlay(
+                visible=False,
+                id="loading-overlay-widget-torrent",
+                zIndex=200,
+                overlayProps={"radius": "sm", "blur": 2},
+            ),
         ],
-        className="block-background mobile-block",
+        className="mobile-block",
+        shadow="md",
         # style={"min-height": "100%"},
     )
 
@@ -307,30 +292,31 @@ def widget_systeminfo():
     """
     Функция создает карточку с информацией о системе.
 
-    Аргументы:
-    Нет аргументов.
-
-    Возвращает:
-    dbc.Card: карточка с информацией о системе.
+    :return dmc.Card: карточка с информацией о системе.
     """
-    return dbc.Card(
+
+    cpu_usage = int(psutil.cpu_percent(interval=0.1))
+    return dmc.Card(
         [
-            html.H5("Системный монитор", className="card-title"),
+            dmc.Text("Системный монитор", size="xl", ta="center"),
             dmc.Space(h=10),
             dmc.Group(
                 [
                     dmc.Stack(
                         [
-                            dmc.Text("CPU", ta="center", fw=700),
+                            dmc.Text("CPU", ta="center", fw=500),
                             dmc.RingProgress(
                                 sections=[
                                     {
-                                        "value": int(psutil.cpu_percent()),
-                                        "color": "var(--bs-blue)",
-                                        "tooltip": f"Используется: {psutil.cpu_percent()}%",
+                                        "value": cpu_usage,
+                                        "color": get_color_by_value(percent=cpu_usage),
+                                        "tooltip": f"Используется: {cpu_usage}%",
                                     },
                                 ],
-                                label=dmc.Text(f"{round(psutil.cpu_freq().current/1000, 2)} GHz", c="black", ta="center"),
+                                label=dmc.Text(
+                                    f"{round(psutil.cpu_freq().current / 1000, 2)} GHz",
+                                    ta="center",
+                                ),
                                 size=120,
                                 roundCaps=True,
                             ),
@@ -339,16 +325,21 @@ def widget_systeminfo():
                     ),
                     dmc.Stack(
                         [
-                            dmc.Text("RAM", ta="center", fw=700),
+                            dmc.Text("RAM", ta="center", fw=500),
                             dmc.RingProgress(
                                 sections=[
                                     {
                                         "value": psutil.virtual_memory().percent,
-                                        "color": "var(--bs-blue)",
-                                        "tooltip": f"Занято: {bytes2human(psutil.virtual_memory().used)}",
+                                        "color": get_color_by_value(
+                                            percent=psutil.virtual_memory().percent
+                                        ),
+                                        "tooltip": f"Занято: {get_readable_bytes(psutil.virtual_memory().used)}",
                                     },
                                 ],
-                                label=dmc.Text(bytes2human(psutil.virtual_memory().total), c="black", ta="center"),
+                                label=dmc.Text(
+                                    get_readable_bytes(psutil.virtual_memory().total),
+                                    ta="center",
+                                ),
                                 size=120,
                                 roundCaps=True,
                             ),
@@ -357,16 +348,21 @@ def widget_systeminfo():
                     ),
                     dmc.Stack(
                         [
-                            dmc.Text("SWAP", ta="center", fw=700),
+                            dmc.Text("SWAP", ta="center", fw=500),
                             dmc.RingProgress(
                                 sections=[
                                     {
                                         "value": psutil.swap_memory().percent,
-                                        "color": "var(--bs-blue)",
-                                        "tooltip": f"Занято: {bytes2human(psutil.swap_memory().used)}",
+                                        "color": get_color_by_value(
+                                            percent=psutil.swap_memory().percent
+                                        ),
+                                        "tooltip": f"Занято: {get_readable_bytes(psutil.swap_memory().used)}",
                                     },
                                 ],
-                                label=dmc.Text(bytes2human(psutil.swap_memory().total), c="black", ta="center"),
+                                label=dmc.Text(
+                                    get_readable_bytes(psutil.swap_memory().total),
+                                    ta="center",
+                                ),
                                 size=120,
                                 roundCaps=True,
                             ),
@@ -374,40 +370,45 @@ def widget_systeminfo():
                         gap=0,
                     ),
                 ],
+                justify="center",
             ),
             dmc.Divider(h=10),
-            dmc.Grid(
+            dmc.Group(
                 [
-                    dmc.GridCol(
-                        dmc.Group(
-                            [
-                                dmc.Text("↓", fw=600, c="#369e1f"),
-                                dmc.Text("0 b/s", c="#369e1f"),
-                            ],
-                            justify="center",
-                        ),
-                        span="content",
+                    dmc.Group(
+                        [
+                            dmc.Text("↓", fw=600),
+                            dmc.Text("NaN b/s"),
+                        ],
+                        justify="center",
+                        c="#369e1f",
+                        w="max-content",
                     ),
-                    dmc.GridCol(
-                        dmc.Group(
-                            [
-                                dmc.Text("↑", fw=600, c="blue"),
-                                dmc.Text("0 b/s", c="blue"),
-                            ],
-                            justify="center",
-                        ),
-                        span="content",
+                    dmc.Group(
+                        [
+                            dmc.Text("↑", fw=600),
+                            dmc.Text("NaN b/s"),
+                        ],
+                        justify="center",
+                        c="custom-primary-color",
+                        w="max-content",
                     ),
                 ],
-                w="100%",
+                # w="100%",
                 grow=True,
+                style={"flex-wrap": "nowrap"},
             ),
         ],
-        className="block-background mobile-block",
-        style={"min-height": "100%", "width": "100%"},
+        className="mobile-block",
+        shadow="md",
+        w='100%'
     )
 
 
-def widget_fileManager_log():
+def widget_file_manager_log():
+    """
+
+    :return: None
+    """
     # статистика по добавленным файлам
     return None

@@ -2,8 +2,9 @@ create table
   "users" (
     "id" serial primary key,
     "username" varchar(70) not null,
-    "email" varchar(150) not null,
-    "password" varchar(64) not null,
+    "nickname" varchar(128) not null,
+    "email" varchar(150),
+    "password" bytea not null,
     "active" BOOLEAN DEFAULT TRUE,
     "admin_access" BOOLEAN DEFAULT FALSE,
     "created_at" timestamp not null default NOW(),
@@ -100,6 +101,8 @@ create table
     "file_id" bytea not null,
     "duration" real not null,
     "fps" int,
+    "width" int,
+    "height" int,
     "codec" varchar(20),
     "created_at" timestamp not null default NOW(),
     "updated_at" timestamp not null default NOW(),
@@ -120,6 +123,15 @@ create table
     "created_at" timestamp not null default NOW(),
     "updated_at" timestamp not null default NOW(),
     FOREIGN KEY (file_id) REFERENCES filestorage_files (id) ON DELETE CASCADE
+);
+
+create table
+  "header_links" (
+    "id" serial primary key,
+    "header_group_name" varchar(255) not null,
+    "header_group_content" JSONB not null,
+    "created_at" timestamp not null default NOW(),
+    "updated_at" timestamp not null default NOW()
 );
 
 CREATE EXTENSION pgcrypto;

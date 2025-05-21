@@ -1,8 +1,15 @@
-import dash_mantine_components as dcc
 import traceback
+
 import dash_mantine_components as dmc
 
-def gen(er, from_search=False):
+
+def generate_sql_traceback(er, from_search=False):
+    """
+
+    :param er:
+    :param from_search:
+    :return:
+    """
     err_cont = dmc.Alert(
         dmc.Stack(
             [
@@ -24,10 +31,10 @@ def gen(er, from_search=False):
             gap=0,
             justify="center",
         ),
-        w="70%" if from_search==False else '100%',
+        w="70%" if not from_search else '100%',
         title="SQL Error",
         color="red",
         radius="md",
-        className="alert-pos" if from_search==False else None,
-    ) 
+        className="alert-pos" if not from_search else None,
+    )
     return err_cont

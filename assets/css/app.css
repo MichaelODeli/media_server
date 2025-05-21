@@ -1,0 +1,10 @@
+body {
+    box-shadow: unset;
+    font-family: var(--mantine-font-family) !important;
+    color: var(--mantine-color-text) !important;
+    background-color: var(--mantine-color-body) !important;
+}
+
+.navbar-collapse {
+    flex-grow: unset !important;
+}

@@ -1,0 +1,23 @@
+.min-column-width {
+    white-space: nowrap;
+    width: 1%;
+}
+
+.sticky-th {
+    background: var(--mantine-color-body);
+    position: sticky;
+    top: 0;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    /* Текст не переносится */
+    overflow: hidden;
+    /* Обрезаем всё за пределами блока */
+    text-overflow: ellipsis;
+    /* Добавляем многоточие */
+}
+
+.partition-no-margin > p {
+    margin: 2.5px !important;
+}

@@ -1,0 +1,19 @@
+.video-background-image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.video-time {
+    position:absolute;
+    bottom:0;
+    right:0;
+}
+
+.video-link, .audio-link {
+    color: gray;
+}
+
+.video-link:hover, .audio-link:hover {
+    color: var(--bs-highlight-color);
+}

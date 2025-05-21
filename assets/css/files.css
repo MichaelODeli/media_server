@@ -1,0 +1,6 @@
+/* на телефоне аффикс отобразится */
+@media (min-width: 1101px) {
+    .shown-affix {
+        display: none;
+    }
+}

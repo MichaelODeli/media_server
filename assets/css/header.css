@@ -1,0 +1,21 @@
+/* dropdown items has very light color */
+.dropdown-item,
+.dropdown-header {
+    color: var(--bs-blue);
+}
+
+.dropdown-item, .dropdown-header {
+    color: unset !important;
+}
+
+.dropdown-header {
+    font-weight: bold;
+}
+
+.dropdown-item:hover {
+    color: white !important;
+}
+
+.header-text {
+    white-space: nowrap
+}

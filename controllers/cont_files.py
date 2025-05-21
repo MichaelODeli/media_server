@@ -1,21 +1,18 @@
-import dash_mantine_components as dmc
-import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
-from dash import dcc, html
 from random import randint as r
+
+import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
+from dash import html
 from dash_extensions import Purify
-from controllers import service_controller as service
+from dash_iconify import DashIconify
 
 
 def nested_list_to_html(lst):
     """
     Рекурсивно преобразует вложенный список в маркированный список HTML.
 
-    Параметры:
-    lst (list): Вложенный список, который нужно преобразовать.
-
-    Вывод:
-    str: Строка, содержащая HTML-код маркированного списка.
+    :param lst (list): Вложенный список, который нужно преобразовать.
+    :return (str): Строка, содержащая HTML-код маркированного списка.
 
     Для выделения текста жирным шрифтом, оберните текст в звездочки: *text*.
     """
@@ -38,29 +35,27 @@ def generate_html_table(
     align="right",
     variant="full",
     striped=False,
-    highlightOnHover=False,
+    highlight_on_hover=False,
 ):
     """
     Генерирует HTML-таблицу на основе переданных заголовков и данных.
 
-    Параметры:
-    header (list): Список заголовков столбцов таблицы.
-    data (list): Список списков, представляющих строки данных таблицы.
-    align (str): Выравнивание элементов таблицы
-    variant (str): full/compact
+    :param header (list): Список заголовков столбцов таблицы.
+    :param data (list): Список списков, представляющих строки данных таблицы.
+    :param align (str): Выравнивание элементов таблицы
+    :param variant (str): full/compact
 
-    Вывод:
-    html.Div: HTML-элемент div, содержащий таблицу.
+    :return html.Div: HTML-элемент div, содержащий таблицу.
     """
     header = [
-        html.Thead(
-            html.Tr(
-                [html.Th(header[0], style={"max-width": "20px"})]
-                + [
-                    html.Th(
+        dmc.TableThead(
+            dmc.TableTr(
+                [dmc.TableTh(header[0], style={"max-width": "20px"})] +
+                [
+                    dmc.TableTh(
                         header_element,
                         style={
-                            # "text-align": align
+                            "text-align": 'center'
                         },
                     )
                     for header_element in header[1:]
@@ -69,16 +64,16 @@ def generate_html_table(
         )
     ]
     body = [
-        html.Tbody(
+        dmc.TableTbody(
             [
-                html.Tr(
+                dmc.TableTr(
                     [
-                        html.Td(
+                        dmc.TableTd(
                             value,
                             style={
                                 "align-content": 'center',
                                 "padding": (
-                                    "0 5px 0 5px" if variant == "compact" else "unset"
+                                    "5px" if variant == "compact" else "unset"
                                 ),
                             },
                         )
@@ -92,10 +87,10 @@ def generate_html_table(
 
     return html.Div(
         [
-            dbc.Table(
+            dmc.Table(
                 header + body,
                 striped=striped,
-                hover=highlightOnHover,
+                highlightOnHover=highlight_on_hover,
                 style={"box-shadow": "unset", "text-align": align},
             )
         ],
@@ -108,12 +103,16 @@ def generate_html_table(
 
 
 def block_files_list():
+    """
+
+    :return html.Div:
+    """
     return html.Div(
         [
             dmc.Grid(
                 [
                     dmc.GridCol(
-                        html.H5("Менеджер файлов", style={"margin": "0"}),
+                        dmc.Title("Менеджер файлов", style={"margin": "0"}, order=5),
                         span="content",
                     ),
                     dmc.GridCol(span="auto"),
@@ -220,6 +219,11 @@ def block_files_list():
 
 
 def tree_content(source):
+    """
+
+    :param source: col/drawer
+    :return (dmc.Stack):
+    """
     if source == "col":
         label = "Hello! This is on column!"
     elif source == "drawer":
@@ -229,9 +233,9 @@ def tree_content(source):
 
     return dmc.Stack(
         [
-            # label,
+            label,
             Purify(
-                nested_list_to_html(
+                html=nested_list_to_html(
                     [
                         "C:/",
                         [
@@ -248,9 +252,13 @@ def tree_content(source):
 
 
 def get_drawer():
+    """
+
+    :return:
+    """
     return dmc.Drawer(
         children=[tree_content(source="drawer")],
-        title=html.H5("Дерево папок"),
+        title=dmc.Title("Дерево папок", order=5),
         id="drawer-tree",
         padding="md",
         zIndex=10000,

@@ -1,0 +1,41 @@
+.mantine-Checkbox-root {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.mantine-Switch-labelWrapper {
+    justify-content: center;
+}
+
+.mantine-AppShell-header {
+    display: grid;
+}
+
+.mantine-AppShell-header>.mantine-Grid-root {
+    justify-self: center;
+    align-self: center;
+}
+
+.col-height {
+    height: min-content;
+}
+
+header {
+    height: auto !important;
+}
+
+.mantine-Button-label {
+    font-weight: 500 !important;
+}
+
+.mantine-sm-button {
+    --button-height: var(--button-height-sm);
+    --button-padding-x: var(--button-padding-x-sm);
+    --button-fz: var(--mantine-font-size-sm);
+    --button-color: var(--mantine-color-white);
+}
+
+.m_92253aa5, .m_8fdc1311 {
+    color: var(--mantine-color-text)
+}

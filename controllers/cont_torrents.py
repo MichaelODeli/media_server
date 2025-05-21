@@ -1,33 +1,30 @@
-import dash_mantine_components as dmc
-import dash_bootstrap_components as dbc
-from dash_iconify import DashIconify
-from dash import dcc, html
-from controllers import cont_files as cont_f
-import qbittorrentapi
+import re
 from datetime import datetime
+
+import dash_mantine_components as dmc
+import qbittorrentapi
+from dash import dcc, html
+
+from controllers import db_connection, file_manager
 
 
 def add_torrent_modal():
-    loading_skeleton = dmc.Stack(
-        gap="xs",
-        children=[
-            dmc.Skeleton(height=8, width="70%"),
-            dmc.Skeleton(height=8),
-            dmc.Skeleton(height=8),
-            dmc.Skeleton(height=8, width="70%"),
-        ],
-    )
+    """
+
+    :return:
+    """
     return dmc.Modal(
-        title=html.H5("Добавить торрент"),
+        title=dmc.Title("Добавить торрент", order=4),
         id="modal-add-torrent",
         centered=True,
         size="55%",
-        zIndex=10000,
+        zIndex=50,
         children=[
             dmc.Stack(
                 [
                     dcc.Upload(
                         id="upload-torrent",
+                        accept=".torrent",
                         children=html.Div(
                             [
                                 "Перетащите или ",
@@ -36,7 +33,7 @@ def add_torrent_modal():
                                     className="link-opacity-100",
                                     href="#",
                                 ),
-                            ]
+                            ],
                         ),
                         style={
                             "width": "100%",
@@ -50,34 +47,22 @@ def add_torrent_modal():
                         },
                         # Allow multiple files to be uploaded
                         # multiple=True,
+                        max_size=40960,
                     ),
-                    dmc.Space(h=7),
-                    html.H6("Информация о файле {filename}"),
-                    loading_skeleton,
-                    dmc.Space(h=7),
-                    html.H6("Выберите категорию загружаемого файла"),
-                    dmc.Select(
-                        placeholder="Выберите",
-                        id="torrent-category-select",
-                        value="other",
-                        data=[
-                            {"value": "films", "label": "Фильмы"},
-                            {"value": "apps", "label": "Программы"},
-                            {"value": "serials", "label": "Сериалы"},
-                            {"value": "other", "label": "Другое"},
-                        ],
-                        style={"width": "100%", "margin": "auto"},
+                    dmc.TextInput(
+                        label="Либо введите magnet-ссылку",
+                        w="100%",
+                        id="torrent-magnet",
                     ),
-                    dbc.Button(
-                        "Начать загрузку", id="torrent-start-download", n_clicks=0
-                    ),
+                    dmc.Button("Скачать по magnet-ссылке", id="torrent-magnet-btn"),
+                    dmc.Stack(id="torrent-upload-props", gap="xs"),
                 ]
             )
         ],
     )
 
 
-def bytes2human(n, format="%(value).1f %(symbol)s", symbols="customary"):
+def bytes2human(n, formatting="%(value).1f %(symbol)s", symbols="customary"):
     """
     Convert n bytes into a human readable string based on format.
     symbols can be either "customary", "customary_ext", "iec" or "iec_ext",
@@ -114,7 +99,7 @@ def bytes2human(n, format="%(value).1f %(symbol)s", symbols="customary"):
       >>> bytes2human(10000, format="%(value).5f %(symbol)s")
       '9.76562 K'
     """
-    SYMBOLS = {
+    symbols_dict = {
         "customary": ("B", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb", "Zb", "Yb"),
         "customary_ext": (
             "byte",
@@ -143,7 +128,7 @@ def bytes2human(n, format="%(value).1f %(symbol)s", symbols="customary"):
     n = int(n)
     if n < 0:
         raise ValueError("n < 0")
-    symbols = SYMBOLS[symbols]
+    symbols = symbols_dict[symbols]
     prefix = {}
     for i, s in enumerate(symbols[1:]):
         prefix[s] = 1 << (i + 1) * 10
@@ -155,167 +140,133 @@ def bytes2human(n, format="%(value).1f %(symbol)s", symbols="customary"):
 
 
 def decode_torrent_status(name):
-    if name == "error":
-        return "Ошибка"
-    elif name == "missingFiles":
-        return "Нет файлов"
-    elif name == "uploading":
-        return "[↑] Раздача"
-    elif name == "pausedUP":
-        return "[↑] Пауза"
-    elif name == "queuedUP":
-        return "[↑] В очереди"
-    elif name == "stalledUP":
-        return "[↑] Ожидание"
-    elif name == "checkingUP":
-        return "[↑] Проверка"
-    elif name == "forcedUP":
-        return "[П] Раздача"
-    elif name == "allocating":
-        return "[↓] Выделение места"
-    elif name == "downloading":
-        return "[↓] Загрузка"
-    elif name == "metaDL":
-        return "[↓] Проверка мета"
-    elif name == "pausedDL":
-        return "[↓] Пауза"
-    elif name == "queuedDL":
-        return "[↓] В очереди"
-    elif name == "stalledDL":
-        return "[↓] Ожидание"
-    elif name == "checkingDL":
-        return "[↓] Проверка"
-    elif name == "forcedDL":
-        return "[П] Загрузка"
-    elif name == "checkingResumeData":
-        return "[↓] Проверка"
-    elif name == "moving":
-        return "Перемещение"
+    """
+
+    :param name:
+    :return:
+    """
+    status_dict = {
+        "error": "Ошибка",
+        "missingFiles": "Нет файлов",
+        "uploading": "[↑] Раздача",
+        "pausedUP": "[↑] Пауза",
+        "queuedUP": "[↑] В очереди",
+        "stalledUP": "[↑] Ожидание",
+        "checkingUP": "[↑] Проверка",
+        "forcedUP": "[П] Раздача",
+        "allocating": "[↓] Выделение места",
+        "downloading": "[↓] Загрузка",
+        "metaDL": "[↓] Проверка мета",
+        "pausedDL": "[↓] Пауза",
+        "queuedDL": "[↓] В очереди",
+        "stalledDL": "[↓] Ожидание",
+        "checkingDL": "[↓] Проверка",
+        "forcedDL": "[П] Загрузка",
+        "checkingResumeData": "[↓] Проверка",
+        "moving": "Перемещение",
+    }
+
+    if name in status_dict.keys():
+        return status_dict[name]
     else:
         return "Неизвестно"
 
 
-def get_torrents_data(qbittorrent_url="192.168.0.33:8124"):
-    try:
-        qbt_client = qbittorrentapi.Client(host=qbittorrent_url)
-        torrents_data = []
-        for torrent_info in qbt_client.torrents_info():
-            t_hash = torrent_info["hash"]
-            t_name = torrent_info["name"]
-            t_progress = int(torrent_info["progress"] * 100)
-            t_status = decode_torrent_status(torrent_info["state"])
-            t_seeds = torrent_info["num_seeds"]
-            t_speed_down = bytes2human(torrent_info["dlspeed"]) + "/s"
-            t_speed_upl = bytes2human(torrent_info["upspeed"]) + "/s"
-            t_added = datetime.fromtimestamp(torrent_info["added_on"]).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-            t_completed = datetime.fromtimestamp(torrent_info["completion_on"]).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-            torrents_data.append(
-                [
-                    dmc.Checkbox(id=f"torrent-{t_hash}"),
-                    t_name,
-                    dmc.ProgressRoot(
-                        [
-                            dmc.ProgressSection(
-                                dmc.ProgressLabel(f"{str(t_progress)}%"),
-                                value=t_progress,
-                            ),
-                        ],
-                        size="xl",
-                    ),
-                    t_status,
-                    t_seeds,
-                    t_speed_down,
-                    t_speed_upl,
-                    t_added,
-                    t_completed,
-                ]
-            )
-        return torrents_data
-    except:
-        return None
+def verify_magnet_link(magnet_link):
+    """
+
+    :param magnet_link:
+    :return:
+    """
+    pattern = re.compile(r"magnet:\?xt=urn:[a-z0-9]+:[a-zA-Z0-9]{32}")
+    result = pattern.match(magnet_link)
+    if result is not None:
+        return True
+    else:
+        return False
 
 
-def block_torrents():
-    return html.Div(
+def get_torrents_data_dict(source_page):
+    """
+
+    :param source_page:
+    :return:
+    """
+    conn = db_connection.get_conn()
+    settings = file_manager.get_settings(conn)
+
+    qbt_ip = settings["apps.torrents.qbittorrent_ip"]
+    qbt_port = settings["apps.torrents.qbittorrent_port"]
+    qbt_login = settings["apps.torrents.qbittorrent_login"]
+    qbt_password = settings["apps.torrents.qbittorrent_password"]
+
+    qbt_client = qbittorrentapi.Client(
+        host=f"{qbt_ip}:{qbt_port}", username=qbt_login, password=qbt_password
+    )
+
+    if source_page == "main_page":
+        return {
+            "all": len(qbt_client.torrents_info()),
+            "uploading": len(qbt_client.torrents_info(status_filter="seeding")),
+            "downloading": len(
+                qbt_client.torrents_info(status_filter="downloading")
+            ),
+        }
+    elif source_page == "torrents_page":
+        return [
+            {
+                "hash": torrent_info["hash"],
+                "name": torrent_info["name"],
+                "progress": int(torrent_info["progress"] * 100),
+                "status": decode_torrent_status(torrent_info["state"]),
+                "seeds": torrent_info["num_seeds"],
+                "download_speed": bytes2human(torrent_info["dlspeed"]) + "/s",
+                "upload_speed": bytes2human(torrent_info["upspeed"]) + "/s",
+                "added": datetime.fromtimestamp(torrent_info["added_on"]).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                "completed": (
+                    datetime.fromtimestamp(torrent_info["completion_on"]).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                    if torrent_info["completion_on"] > 0
+                    else ""
+                ),
+            }
+            for torrent_info in qbt_client.torrents_info()
+        ]
+    else:
+        return ValueError("Некорректная страница.")
+
+
+def get_torrents_table_data(source_page="torrents_page"):
+    """
+
+    :param source_page:
+    :return:
+    """
+    return [
         [
-            dmc.Grid(
+            dmc.Checkbox(
+                id={"type": "torrent-checkboxes", "id": torrent_dict["hash"]},
+                checked=False,
+            ),
+            torrent_dict["name"],
+            dmc.ProgressRoot(
                 [
-                    dmc.GridCol(
-                        html.H5("Управление торрентами", style={"margin": "0"}),
-                        span="content",
-                    ),
-                    dmc.GridCol(span="auto"),
-                    dbc.ButtonGroup(
-                        [
-                            dbc.Button(
-                                DashIconify(icon="material-symbols:sync", width=25),
-                                outline=True,
-                                color="primary",
-                                id="torrent-update",
-                                className="button-center-content",
-                                title="Обновить список",
-                                # disabled=True,
-                                size="md",
-                                n_clicks=0,
-                            ),
-                            dbc.Button(
-                                DashIconify(icon="material-symbols:add", width=25),
-                                outline=True,
-                                color="primary",
-                                id="torrent-add",
-                                className="button-center-content",
-                                title="Добавить торрент",
-                                disabled=True,
-                                size="md",
-                                n_clicks=0,
-                            ),
-                            dbc.Button(
-                                DashIconify(
-                                    icon="material-symbols:play-pause", width=25
-                                ),
-                                outline=True,
-                                color="primary",
-                                id="torrent-startstop",
-                                className="button-center-content",
-                                title="Запустить/остановить торрент",
-                                disabled=True,
-                                size="md",
-                            ),
-                            dbc.Button(
-                                DashIconify(
-                                    icon="material-symbols:info-outline", width=25
-                                ),
-                                outline=True,
-                                color="primary",
-                                id="torrent-info",
-                                className="button-center-content",
-                                title="Информация о торренте",
-                                disabled=True,
-                                size="md",
-                            ),
-                            dbc.Button(
-                                DashIconify(icon="material-symbols:delete", width=25),
-                                outline=True,
-                                color="danger",
-                                id="torrent-delete",
-                                className="button-center-content",
-                                title="ОПИСАНИЕ",
-                                disabled=True,
-                                size="md",
-                            ),
-                        ],
-                        style={"margin": "5px"},
+                    dmc.ProgressSection(
+                        dmc.ProgressLabel(f"{str(torrent_dict['progress'])}%"),
+                        value=torrent_dict["progress"],
                     ),
                 ],
-                align="stretch",
-                justify="center",
+                size="xl",
             ),
-            dmc.Space(h=15),
-            html.Div(id="torrents-table-container"),
-        ],
-        className="block-background",
-    )
+            torrent_dict["status"],
+            torrent_dict["seeds"],
+            torrent_dict["download_speed"],
+            torrent_dict["upload_speed"],
+            torrent_dict["added"],
+            torrent_dict["completed"],
+        ]
+        for torrent_dict in get_torrents_data_dict(source_page=source_page)
+    ]

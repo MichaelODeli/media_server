@@ -1,0 +1,37 @@
+/* на телефоне блок скроется */
+@media (max-width: 768px) {
+  .hided_element {
+    display: none !important;
+  }
+}
+
+.mantine-Drawer-drawer {
+  overflow-y: auto;
+}
+
+.control-button {
+  padding: 5px
+}
+
+.audio-content > tr > td, .center-content {
+  align-content: center;
+}
+
+.center-content {
+  text-align: center;
+}
+
+.w-content {
+  width: fit-content;
+}
+
+.h-content {
+  height: fit-content;
+}
+
+.block-background-float {
+  background-color: var(--mantine-color-body);
+  padding: 10px;
+  min-height: 70px;
+  border: 0 !important;
+}

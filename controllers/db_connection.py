@@ -1,4 +1,5 @@
 import os
+
 import psycopg2
 from dotenv import dotenv_values
 
@@ -9,15 +10,16 @@ config = {
     **os.environ,  # override loaded values with environment variables
 }
 
-DBNAME=config['DB_NAME']
-USER=config['DB_USER']
-PASSWORD=config['DB_PASSWORD']
-HOST=config['DB_HOST_LOCAL'] if not os.environ.get("AM_I_IN_A_DOCKER_CONTAINER", False) else config['DB_HOST_DOCKER']
-PORT=int(config['DB_PORT'])
+DBNAME = config['DB_NAME']
+USER = config['DB_USER']
+PASSWORD = config['DB_PASSWORD']
+HOST = config['DB_HOST_LOCAL'] if not os.environ.get("AM_I_IN_A_DOCKER_CONTAINER", False) else config['DB_HOST_DOCKER']
+PORT = int(config['DB_PORT'])
+
 
 def test_conn(dbname=DBNAME, user=USER, password=PASSWORD, host=HOST, port=PORT):
     """
-    Функция test_conn проверяет соединение с базой данных.
+    Функция testConn проверяет соединение с базой данных.
 
     :param dbname: имя базы данных.
     :param user: имя пользователя базы данных.
@@ -49,10 +51,9 @@ def test_conn(dbname=DBNAME, user=USER, password=PASSWORD, host=HOST, port=PORT)
         return False
 
 
-
 def get_conn(dbname=DBNAME, user=USER, password=PASSWORD, host=HOST, port=PORT):
     """
-    Функция get_conn возвращает соединение с базой данных, если оно установлено успешно, иначе None.
+    Функция getConn возвращает соединение с базой данных, если оно установлено успешно, иначе None.
 
     :param dbname: имя базы данных.
     :param user: имя пользователя базы данных.
@@ -71,5 +72,5 @@ def get_conn(dbname=DBNAME, user=USER, password=PASSWORD, host=HOST, port=PORT):
         )
         conn.autocommit = True
         return conn
-    else: return psycopg2.errors.ConnectionFailure('Сервер недоступен.')
-
+    else:
+        return psycopg2.errors.ConnectionFailure('Сервер недоступен.')

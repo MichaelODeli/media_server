@@ -2,7 +2,8 @@
 - **Описание проекта**
     - [Этапы разработки](./project_info/DEV_STEPS.md)
     - [Описание версий приложения](./project_info/VERSIONS.md)
-    - [**Установка проекта**](./project_info/INSTALL.md)
+    - [Оценка готовности приложений](./project_info/APPS.md)
+    - [Установка проекта](./project_info/INSTALL.md)
 - **Описание ключевых компонентов проекта**
     - [Менеджер файлового хранилища](./key_components/FILESTORAGE.md)
     - [База данных](./key_components/DB.md)

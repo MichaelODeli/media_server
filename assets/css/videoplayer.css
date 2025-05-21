@@ -1,0 +1,36 @@
+.columns-margin {
+    margin-right: 10px;
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .columns-margin {
+      height: 100%;
+      overflow: hidden;
+    }
+}
+
+.columns-margin:last-child {
+    margin-right: 0px;
+}
+
+
+video,
+.video_container {
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 70dvh !important;
+    background-color: black;
+}
+
+.overflow-column {
+    min-height: 100% !important;
+}
+
+.video-column {
+    height: 100%;
+}
+
+.mih-100 {
+    min-height: 100%;
+}

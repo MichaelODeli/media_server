@@ -1,0 +1,7 @@
+#search_pagination > .mantine-Group-root {
+    --group-justify: center !important;
+}
+
+#search_pagination_video > .mantine-Group-root {
+    --group-justify: center !important;
+}
