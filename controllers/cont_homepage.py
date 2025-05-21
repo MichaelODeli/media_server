@@ -401,7 +401,7 @@ def widget_systeminfo():
         ],
         className="mobile-block",
         shadow="md",
-        w='100%'
+        w="100%",
     )
 
 
@@ -412,3 +412,26 @@ def widget_file_manager_log():
     """
     # статистика по добавленным файлам
     return None
+
+
+def widget_reworking(title, **kwargs):
+    """
+    Функция создает карточку-заглушку
+
+    :param title: заголовок виджета
+
+    :param **kwargs: любое количество ключевых аргументов.
+
+    :return (dmc.Card): карточка-заглушка
+    """
+    return dmc.Card(
+        [
+            dmc.Text(title, ta="center", fw=500, mb="md"),
+            dmc.Skeleton(height=150, radius="xl"),
+            dmc.Text(
+                "Элемент на переработке", ta="center", mt="md"
+            ),
+        ],
+        className="mobile-block",
+        shadow="md",
+    )

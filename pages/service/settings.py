@@ -39,6 +39,10 @@ def layout(l="n", tab="server_info", **kwargs):  # noqa: E741
                                 value="widgets",
                             ),
                             dmc.TabsTab(
+                                dmc.Title("Настройка интеграции с Synology", order=5),
+                                value="synology",
+                            ),
+                            dmc.TabsTab(
                                 dmc.Title("Свойства системы", order=5),
                                 value="server_info",
                             ),
@@ -77,18 +81,48 @@ def render_settings_content(active, test=True):
     if active == "files":
         return dmc.Stack(
             [
-                dmc.Title("Каталоги", order=4),
+                dmc.Title("Данные для подключения по Synology API", order=4),
+                dmc.Switch(
+                    label="Включить интеграцию файлового менеджера с Synology",
+                    checked=True,
+                    disabled=True,
+                ),
+                dmc.TextInput(
+                    label="IP адрес сервера Synology",
+                    style={"width": 250},
+                    disabled=True,
+                ),
+                dmc.TextInput(
+                    label="Порт сервера Synology",
+                    style={"width": 250},
+                    disabled=True,
+                ),
+                dmc.TextInput(
+                    label="Логин сервера Synology",
+                    style={"width": 250},
+                    disabled=True,
+                ),
+                dmc.PasswordInput(
+                    label="Пароль сервера Synology",
+                    style={"width": 250},
+                    disabled=True,
+                ),
+                dmc.Divider(variant="solid"),
+                dmc.Title("Настройка каталогов", order=4),
                 dmc.TextInput(
                     label="Родительский каталог с папками",
                     style={"width": 250},
                     id="settings-catalog-main_folder",
                     value=(
-                        settings["filemanager.baseway.test"]
-                        if test
-                        else settings["filemanager.baseway"]
+                        "/@volume1/symbol_links/"
+                        # settings["filemanager.baseway.test"]
+                        # if test
+                        # else settings["filemanager.baseway"]
                     ),
                     disabled=True,
                 ),
+                dmc.Divider(variant="solid"),
+                dmc.Title("Каталоги", order=4),
                 dmc.NumberInput(
                     label="Глубина обхода папок",
                     value=int(settings["filemanager.depth"]),
@@ -191,18 +225,19 @@ def render_settings_content(active, test=True):
     elif active == "server_info":
         return [
             dmc.Space(h=5),
-            dmc.Table(
-                [
-                    dmc.TableTbody(
-                        cont_settings.get_system_info_rows()
-                        + cont_settings.get_cpu_info_rows()
-                        + cont_settings.get_ram_swap_info_rows()
-                        + cont_settings.get_partitions_info_rows()
-                    ),
-                ],
-                style={"table-layout": "auto", "width": "100%"},
-                className="no-box-shadow",
-            ),
+            # dmc.Table(
+            #     [
+            #         dmc.TableTbody(
+            #             cont_settings.get_system_info_rows()
+            #             + cont_settings.get_cpu_info_rows()
+            #             + cont_settings.get_ram_swap_info_rows()
+            #             + cont_settings.get_partitions_info_rows()
+            #         ),
+            #     ],
+            #     style={"table-layout": "auto", "width": "100%"},
+            #     className="no-box-shadow",
+            # ),
+            dmc.Text("Отключено"),
         ]
     elif active == "widgets":
         return dmc.Stack(
@@ -337,6 +372,12 @@ def render_settings_content(active, test=True):
             ],
             # w='100%'
         )
+    elif active == "synology":
+        return [
+            dmc.Space(h=5),
+            dmc.Title("Настройка приложений и подключений", order=4),
+            dmc.Divider(variant="solid"),
+        ]
     else:
         return [
             dmc.Space(h=5),
